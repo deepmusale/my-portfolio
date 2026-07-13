@@ -20,7 +20,7 @@
       --card-border: rgba(255,255,255,0.08);
     }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: auto; }
 
     /* ── Alternating section backgrounds ── */
     #hero      { background: #0f173d; }
@@ -402,12 +402,13 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 80px;
-      align-items: center;
+      align-items: start;
     }
     .about-stats {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 24px;
+      max-width: 380px;
     }
     .stat-card {
       background: var(--card-bg);
@@ -436,7 +437,7 @@
       letter-spacing: 0.04em;
     }
     .about-text-block { display: flex; flex-direction: column; gap: 16px; }
-    .about-text-block p { font-size: 1rem; color: var(--light); line-height: 1.8; }
+    .about-text-block p { font-size: 0.9rem; color: var(--light); line-height: 1.75; }
 
     /* ── PORTFOLIO CATEGORIES ── */
     #portfolio { width: 100%; }
@@ -890,12 +891,14 @@
     /* ── REVEAL ANIMATION ── */
     .reveal {
       opacity: 0;
-      transform: translateY(40px);
+      transform: translate3d(0, 40px, 0);
       transition: opacity 0.7s ease, transform 0.7s ease;
+      will-change: opacity, transform;
     }
     .reveal.visible {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
+      will-change: auto;
     }
 
     /* ── RESPONSIVE ── */
@@ -908,12 +911,20 @@
     }
     @media (max-width: 600px) {
       .social-links { flex-direction: column; align-items: center; }
-      .about-stats { grid-template-columns: 1fr 1fr; }
+      .about-stats { grid-template-columns: 1fr; }
     }
   </style>
 <link id="gfont-Montserrat" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&amp;display=swap">
 </head>
 <body style="font-family: Montserrat">
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+    <rect width="512" height="512" fill="#0f173d"/>
+    <text x="256" y="300" font-family="Montserrat, sans-serif" font-size="180" font-weight="700" text-anchor="middle" fill="url(#g)">DM</text>
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b00041"/><stop offset="1" stop-color="#2c0087"/></linearGradient></defs>
+  </svg>
+</template>
 
 <!-- ── NAVBAR ── -->
 <nav>
@@ -956,7 +967,7 @@
   </div>
   <div class="hero-content">
     <div class="hero-text">
-      <span class="hero-tag">✦ Creative Designer</span>
+      <span class="hero-tag">✦ Creative Director</span>
       <h1 class="hero-title">
         Crafting Visual<br><span class="grad">Experiences</span>
       </h1>
@@ -981,8 +992,9 @@
     <div class="about-text-block">
       <div class="section-label">About Me</div>
       <h2 class="section-title">Designer.<br>Storyteller.<br>Creator.</h2>
-      <p>Hi, I'm <strong>Deepak Musale</strong> — a multi-disciplinary designer with a passion for visual communication. I specialise in crafting identities that resonate, experiences that engage, and designs that endure.</p>
-      <p>From brand strategy and logo design to packaging, motion, and digital experiences — I bring concepts to life with intention, craft, and a keen eye for detail.</p>
+      <p>Hi everyone, I'm <strong>Deepak Musale</strong> — Associate Director of our Creative team, and an artist and designer at heart. I hold a diploma in Commercial Art and bring over 20 years of experience in the design industry.</p>
+      <p>Throughout my career, I've worked across a wide range of environments — advertising agencies, printing presses, IT companies, gaming studios, and even sports teams. Each brought a different perspective that continues to shape how I approach creative work today.</p>
+      <p>Outside of work, I channel my passion into drawing and painting. I've also enjoyed teaching art, and I share my sketching work through my own creative projects online. Art isn't just my profession — it's what I return to for joy.</p>
       <a href="#contact" class="btn-primary" style="align-self:flex-start;margin-top:8px;">Start a Project</a>
     </div>
     <div class="about-stats">
@@ -1247,6 +1259,52 @@
     });
     document.addEventListener("mousedown", () => ring.classList.add("click"));
     document.addEventListener("mouseup", () => ring.classList.remove("click"));
+  })();
+
+  // ── Momentum smooth scroll (desktop wheel) ──
+  (function () {
+    const fine = window.matchMedia("(pointer: fine)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!fine || reduce) return;
+
+    let target = window.scrollY;
+    let current = window.scrollY;
+    let running = false;
+
+    function clamp(v) {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      return Math.max(0, Math.min(v, max));
+    }
+    function loop() {
+      current += (target - current) * 0.12;
+      if (Math.abs(target - current) < 0.4) { current = target; running = false; }
+      window.scrollTo(0, current);
+      if (running) requestAnimationFrame(loop);
+    }
+    window.addEventListener("wheel", function (e) {
+      if (e.ctrlKey) return; // let pinch-zoom through
+      e.preventDefault();
+      target = clamp(target + e.deltaY);
+      if (!running) { running = true; current = window.scrollY; requestAnimationFrame(loop); }
+    }, { passive: false });
+
+    // Keep target synced when scroll changes by other means (keyboard, anchor, resize)
+    window.addEventListener("scroll", function () {
+      if (!running) { target = window.scrollY; current = window.scrollY; }
+    }, { passive: true });
+
+    // Route in-page anchor links through the momentum target
+    document.addEventListener("click", function (e) {
+      const a = e.target.closest('a[href^="#"]');
+      if (!a) return;
+      const id = a.getAttribute("href");
+      if (id.length < 2) return;
+      const el = document.querySelector(id);
+      if (!el) return;
+      e.preventDefault();
+      target = clamp(el.getBoundingClientRect().top + window.scrollY);
+      if (!running) { running = true; current = window.scrollY; requestAnimationFrame(loop); }
+    });
   })();
 
   // ── Scroll reveal ──
